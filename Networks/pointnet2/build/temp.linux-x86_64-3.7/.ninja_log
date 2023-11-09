@@ -1,0 +1,10 @@
+# ninja log v5
+5	5898	1672752000000000000	/home/jiyao/tianhaowu/projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-3.7/src/sampling.o	c059ebefcead0459
+3	5988	1672752000000000000	/home/jiyao/tianhaowu/projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-3.7/src/group_points.o	2394cbf7c9a7dfeb
+4	6038	1672752001000000000	/home/jiyao/tianhaowu/projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-3.7/src/interpolate.o	31846dff965fe504
+2	6123	1672752001000000000	/home/jiyao/tianhaowu/projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-3.7/src/ball_query.o	87483f0d65f9617a
+4	14113	1672752009000000000	/home/jiyao/tianhaowu/projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-3.7/src/interpolate_gpu.o	b439a2f88114fabe
+3	14186	1672752009000000000	/home/jiyao/tianhaowu/projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-3.7/src/ball_query_gpu.o	915f639b716a5038
+4	14211	1672752009000000000	/home/jiyao/tianhaowu/projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-3.7/src/group_points_gpu.o	435cb050d4b43e2
+5	14592	1672752009000000000	/home/jiyao/tianhaowu/projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-3.7/src/sampling_gpu.o	df644cc1c5e41b37
+2	19508	1672752014000000000	/home/jiyao/tianhaowu/projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-3.7/src/pointnet2_api.o	428b085da6c541b

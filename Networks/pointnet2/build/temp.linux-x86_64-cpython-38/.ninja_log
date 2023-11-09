@@ -1,0 +1,10 @@
+# ninja log v5
+1	10272	1678690369959255594	/home/thwu/Projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-cpython-38/src/sampling.o	c0fd10498b9f8141
+1	10344	1678690370031291592	/home/thwu/Projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-cpython-38/src/interpolate.o	c0706f215d2bd6fb
+0	11068	1678690370751651571	/home/thwu/Projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-cpython-38/src/ball_query.o	d0533bcbc37b43b8
+0	11369	1678690371051801561	/home/thwu/Projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-cpython-38/src/group_points.o	c94d81d4afcb0d6f
+0	23544	1678690383223625741	/home/thwu/Projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-cpython-38/src/ball_query_gpu.o	495c851118518b98
+1	23591	1678690383271565601	/home/thwu/Projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-cpython-38/src/group_points_gpu.o	fe2701abe70edeab
+1	23657	1678690383335485416	/home/thwu/Projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-cpython-38/src/interpolate_gpu.o	4894a896842a035e
+1	24887	1678690384562008121	/home/thwu/Projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-cpython-38/src/pointnet2_api.o	e497e7f379c0d10b
+10273	26933	1678690386611885993	/home/thwu/Projects/ConDex/Networks/pointnet2/build/temp.linux-x86_64-cpython-38/src/sampling_gpu.o	10c2b40a04bfefbe
