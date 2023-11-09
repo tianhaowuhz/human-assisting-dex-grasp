@@ -32,7 +32,6 @@ import cv2
 import matplotlib.pyplot as plt
 import io
 import _pickle as CPickle
-from pytorch3d.ops import sample_farthest_points
 
 save_video = False
 img_size = 256

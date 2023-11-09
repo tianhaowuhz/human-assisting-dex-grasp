@@ -32,10 +32,38 @@ This repo is the official implementation of [GraspGF](https://arxiv.org/abs/2309
 ## Installation
 
 ### Requirements
+The code has been tested on Ubuntu 20.04 with Python 3.8. 
 
-### Install Global Dependencies
+### Install
+
+**IsaacGym**:
+
+You can refer installation of IsaacGym [here](https://developer.nvidia.com/isaac-gym). We currently support the Preview Release 4 version of IsaacGym.
 
 
+**Human-assisting Dexterous Grasping Environment**:
+```
+cd ConDexEnv
+pip install -e .
+```
+
+**Pointnet2**:
+```
+cd Networks/pointnet2
+pip install -e .
+```
+
+**Other Dependencies**
+
+python package:
+``` 
+ipdb
+tqdm
+opencv-python
+matplotlib
+transforms3d
+open3d
+```
 
 ## Dataset
 

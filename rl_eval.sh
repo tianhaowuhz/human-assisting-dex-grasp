@@ -3,7 +3,7 @@
 #-----------------------------------------------------------------------------------------------------------------------
 # unseen 1298  seen 519
 # ours
-python ./Runners/EvalPPO.py \
+python ./Runners/EvalGFPPO.py \
 --constrained \
 --headless \
 --num_envs=1298 \
