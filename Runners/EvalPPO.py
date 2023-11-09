@@ -26,32 +26,6 @@ if __name__ == '__main__':
         cfg_train['setting']['action_type'] = "joint"
         cfg_train['setting']['sub_action_type'] = "add+jointscale"
         cfg_train['policy']['pretrain_pointnet'] = True
-    elif args.exp_name == 'rl':
-        reward_type = "sr"
-        sub_obs_type = "joint+fingertipjoint+wrist+objpcl"
-        cfg_train['setting']['action_type'] = "direct"
-        cfg_train['setting']['sub_action_type'] = "none"
-        cfg_train['policy']['pretrain_pointnet'] = False
-        cfg_train['policy']['pointnet_version'] = 'pt2'
-    elif args.exp_name == 'goalrl':
-        reward_type = "goaldist+sr"
-        sub_obs_type = "joint+fingertipjoint+wrist+objpcl+goal"
-        cfg_train['setting']['action_type'] = "direct"
-        cfg_train['setting']['sub_action_type'] = "none"
-        cfg_train['policy']['pretrain_pointnet'] = False
-        cfg_train['policy']['pointnet_version'] = 'pt2'
-    elif args.exp_name == 'gf':
-        reward_type = "sr"
-        sub_obs_type = "joint+fingertipjoint+wrist+objpcl+gf"
-        cfg_train['setting']['action_type'] = "gf"
-        cfg_train['setting']['sub_action_type'] = "none"
-        cfg_train['policy']['pretrain_pointnet'] = False
-    elif args.exp_name == 'ilad':
-        reward_type = "sr"
-        sub_obs_type = "joint+fingertipjoint+wrist+objpcl"
-        cfg_train['setting']['action_type'] = "direct"
-        cfg_train['setting']['sub_action_type'] = "none"
-        cfg_train['policy']['pretrain_pointnet'] = False
     
     cfg_train["learn"]["test"] = True
 

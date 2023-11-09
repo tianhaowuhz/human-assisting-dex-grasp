@@ -28,34 +28,6 @@ if __name__ == '__main__':
         cfg_train['setting']['action_type'] = "joint"
         cfg_train['setting']['sub_action_type'] = "add+jointscale"
         cfg_train['policy']['pretrain_pointnet'] = True
-        # cfg_train['policy']['activation'] = 'elu'
-    elif args.exp_name == 'rl':
-        reward_type = "abscomplexfingertip_dis+height+sr_faketendon+175hp"
-        sub_obs_type = "joint+fingertipjoint+wrist+objpcl"
-        # cfg_train['policy']['norm_action'] = True
-        cfg_train['setting']['action_type'] = "direct"
-        cfg_train['setting']['sub_action_type'] = "none"
-        cfg_train['policy']['pretrain_pointnet'] = False
-        cfg_train['policy']['pointnet_version'] = 'pt2'
-    elif args.exp_name == 'goalrl':
-        reward_type = "abscomplexfingertip_dis+goaldist+height+sr"
-        sub_obs_type = "joint+fingertipjoint+wrist+objpcl+goal"
-        cfg_train['setting']['action_type'] = "direct"
-        cfg_train['setting']['sub_action_type'] = "none"
-        cfg_train['policy']['pretrain_pointnet'] = False
-        cfg_train['policy']['pointnet_version'] = 'pt2'
-    elif args.exp_name == 'gf':
-        reward_type = "sr"
-        sub_obs_type = "joint+fingertipjoint+wrist+objpcl+gf"
-        cfg_train['setting']['action_type'] = "gf"
-        cfg_train['setting']['sub_action_type'] = "none"
-        cfg_train['policy']['pretrain_pointnet'] = False
-    elif args.exp_name == 'ilad':
-        reward_type = "abscomplexfingertip_dis+height+sr+1demo"
-        sub_obs_type = "joint+fingertipjoint+wrist+objpcl"
-        cfg_train['setting']['action_type'] = "direct"
-        cfg_train['setting']['sub_action_type'] = "none"
-        cfg_train['policy']['pretrain_pointnet'] = False
 
     '''
     policy

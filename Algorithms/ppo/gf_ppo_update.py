@@ -170,9 +170,6 @@ class GFPPO:
         self.storage = RolloutStorage(self.vec_env.num_envs, self.num_transitions_per_env, self.observation_space.shape,
                                       self.state_space.shape, action_space_shape, self.device, sampler)
         
-        if self.args.exp_name == 'ilad':
-            for name,param in self.actor_critic.additional_critic_mlp1.named_parameters():
-                param.requires_grad = False
         self.optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.actor_critic.parameters()), lr=self.learning_rate)
 
         ''' SDE '''
@@ -196,86 +193,6 @@ class GFPPO:
             self.points_per_object = args.points_per_object
         self.t0 = args.t0
         self.ori_grad = None
-
-        '''
-        ILAD    
-        '''
-        if self.args.exp_name == 'ilad':
-            self.lambda0 = 1.0
-            self.lambda1 = 0.95
-            self.lambda2 = 0.01
-            self.lambda3 = 0.99
-            if self.vec_env.mode == 'train':
-                ''' load demo trajectories '''
-                demo_data_dir = "/home/jiyao/tianhaowu/projects/ConDex/ExpertDatasets/ilad_generated_data/generated_demo"
-                
-                demo_observations = []
-                demo_actions = []
-                demo_chose_id = 0
-                for observation_file in glob.glob(os.path.join(demo_data_dir, "observation_*.pth")):
-
-                    demo_chose_id += 1
-                    if demo_chose_id % 2 == 0:
-                        continue
-
-                    action_file = observation_file.replace("observation_", "action_")
-                    if not os.path.exists(action_file):
-                        continue
-                        
-                    current_demo_observation = torch.load(observation_file)
-                    current_demo_action = torch.load(action_file)
-                
-                    demo_observations.append(current_demo_observation)
-                    demo_actions.append(current_demo_action)
-                    
-                demo_observations = torch.cat(demo_observations, dim=0)
-                demo_actions = torch.cat(demo_actions, dim=0)
-                
-                _, _, observation_dim = demo_observations.shape
-                _, _, action_dim = demo_actions.shape
-                
-                demo_observations = demo_observations.reshape(-1, observation_dim)
-                demo_actions = demo_actions.reshape(-1, action_dim)
-                
-                print("demo_observations.shape: ", demo_observations.shape)
-                print("demo_actions.shape: ", demo_actions.shape)
-                
-                ''' normalize demo actions '''
-                demo_actions = demo_actions / 0.05
-                demo_actions = torch.clamp(demo_actions, -1.0, 1.0)
-                
-                self.demo_observations = demo_observations
-                self.demo_actions = demo_actions
-
-                ''' bahavior cloning '''
-                self.bc_loss = nn.MSELoss()
-                self.bc_optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.actor_critic.parameters()), lr=self.learning_rate)
-                self.bc_bz = 128
-                self.bc_epoch = 5
-            
-            if self.vec_env.mode == 'train':
-                dataset = TensorDataset(self.demo_observations, self.demo_actions)
-                dataloader = DataLoader(dataset, batch_size=self.bc_bz, shuffle=True)
-                
-                for epoch in range(self.bc_epoch):
-                    for i, data in tqdm(enumerate(dataloader), total=len(dataloader)):
-                        observations, actions = data
-                        observations = observations.to(self.device)
-                        actions = actions.to(self.device)
-                        
-                        preds = self.actor_critic.forward_actor(observations)
-                        
-                        bc_loss = self.bc_loss(preds, actions)
-                        
-                        self.bc_optimizer.zero_grad()
-                        bc_loss.backward()
-                        self.bc_optimizer.step()
-                        
-                    print("epoch: {}, bc_loss: {}".format(epoch, bc_loss.item()))
-                
-                for name,param in self.actor_critic.additional_critic_mlp1.named_parameters():
-                    param.requires_grad = True
-                self.additional_critic_optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.actor_critic.additional_critic_mlp1.parameters()), lr=self.learning_rate)
 
         ''' Log '''
         # self.log_dir = log_dir
@@ -663,17 +580,12 @@ class GFPPO:
 
         batch = self.storage.mini_batch_generator(self.num_mini_batches)
 
-        if self.args.exp_name == 'ilad':
-            iteration_count = 0
-
         for epoch in range(self.num_learning_epochs):
             # for obs_batch, actions_batch, target_values_batch, advantages_batch, returns_batch, old_actions_log_prob_batch \
             #        in self.storage.mini_batch_generator(self.num_mini_batches):
 
             for indices in batch:
                 # print(len(indices))
-                if self.args.exp_name == 'ilad':
-                    iteration_count += 1
 
                 obs_batch = self.storage.observations.view(-1, *self.storage.observations.size()[2:])[indices]
                 if self.asymmetric:
@@ -688,34 +600,9 @@ class GFPPO:
                 old_mu_batch = self.storage.mu.view(-1, self.storage.actions.size(-1))[indices]
                 old_sigma_batch = self.storage.sigma.view(-1, self.storage.actions.size(-1))[indices]
 
-                if self.args.exp_name == 'ilad':
-                    ''' get demo advantages '''
-                    pass
-                    # demo_obs_batch = self.demo_storage.observations.view(-1, self.demo_storage.observations.size()[2:])[indices]
-                    # demo_states_batch = self.demo_storage.states.view(-1, *self.demo_storage.size()[2:])[indices]
-                    # demo_actions_batch = self.demo_storage.actions.view(-1, self.demo_storage.size(-1))[indices]
-                    # demo_advantages_batch = self.demo_storage.advantages.view(-1, 1)[indices]
-                    # demo_old_actions_log_prob_batch = self.demo_storage.actions_log_prob.view(-1, 1)[indices]  
                 actions_log_prob_batch, entropy_batch, value_batch, mu_batch, sigma_batch = self.actor_critic.evaluate(obs_batch,
                                                                                                                        states_batch,
                                                                                                                        actions_batch)
-
-                if self.args.exp_name == 'ilad':
-                    ''' evaulate demo '''
-                    n = len(indices)
-                    # demo_indices = torch.randint(0, self.demo_storage.observations.size(0), (n,))
-                    demo_indices = torch.randint(0, self.demo_observations.size(0), (n,))
-                    demo_observations = self.demo_observations[demo_indices]
-                    demo_actions = self.demo_actions[demo_indices]
-                    
-                    demo_observations = demo_observations.to(self.device)
-                    demo_actions = demo_actions.to(self.device)
-                    
-                    demo_log_likelihood = self.actor_critic.cal_actions_log_prob(demo_observations, demo_actions)[1]
-                    demo_advantages = self.compute_demo_advantages(demo_observations, demo_actions)
-
-                    demo_weights = (demo_log_likelihood - torch.min(demo_log_likelihood)) / (torch.max(demo_log_likelihood) - torch.min(demo_log_likelihood))
-                    demo_advantages = self.lambda0 * (self.lambda1 ** iteration_count) * demo_weights + self.lambda2 * (1 - (self.lambda3 ** iteration_count)) * demo_advantages
 
                 # KL
                 if self.desired_kl != None and self.schedule == 'adaptive':
@@ -739,17 +626,6 @@ class GFPPO:
                                                                                    1.0 + self.clip_param)
                 surrogate_loss = torch.max(surrogate, surrogate_clipped).mean()
 
-                if self.args.exp_name == 'ilad':
-                    # demo_ratio = torch.exp(demo_actions_log_prob_batch - torch.squeeze(demo_old_actions_log_prob_batch))
-                    # demo_surrogate = -torch.squeeze(demo_advantages_batch) * demo_ratio
-                    # demo_surrogate_clipped = -torch.squeeze(demo_advantages_batch) * torch.clamp(demo_ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
-                    # demo_surrogate_loss = torch.max(demo_surrogate, demo_surrogate_clipped).mean()
-                    demo_surrogate_loss = -torch.mean(demo_advantages) 
-                    # self.optimizer.zero_grad()
-                    # demo_surrogate_loss.backward()
-                    # nn.utils.clip_grad_norm_(self.actor_critic.parameters(), self.max_grad_norm)
-                    # self.optimizer.step()
-
                 # Value function loss
                 if self.use_clipped_value_loss:
                     value_clipped = target_values_batch + (value_batch - target_values_batch).clamp(-self.clip_param,
@@ -762,17 +638,11 @@ class GFPPO:
 
                 loss = surrogate_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy_batch.mean()
 
-                if self.args.exp_name == 'ilad':
-                    ''' add demo_surrogate_loss '''
-                    loss = loss + demo_surrogate_loss
                 # Gradient step
                 self.optimizer.zero_grad()
                 loss.backward()
                 nn.utils.clip_grad_norm_(self.actor_critic.parameters(), self.max_grad_norm)
                 self.optimizer.step()
-
-                if self.args.exp_name == 'ilad':
-                    self.fit_demo_advantage_func(obs_batch, actions_batch, advantages_batch)
 
                 mean_value_loss += value_loss.item()
                 mean_surrogate_loss += surrogate_loss.item()
@@ -782,24 +652,6 @@ class GFPPO:
         mean_surrogate_loss /= num_updates
 
         return mean_value_loss, mean_surrogate_loss
-
-    '''
-    ILAD
-    '''
-    def compute_demo_advantages(self, demo_observations, demo_actions):
-        baseline = self.actor_critic.forward_critic(demo_observations)
-        estimated_value = self.actor_critic.forward_additional_critic(demo_observations, demo_actions)
-        advantages = estimated_value - baseline
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-        advantages = advantages + 1.0
-        return advantages
-    
-    def fit_demo_advantage_func(self, observations, actions, advantages):
-        estimated_advantages = self.actor_critic.forward_additional_critic(observations, actions)
-        loss = (estimated_advantages - advantages).pow(2).mean()
-        self.additional_critic_optimizer.zero_grad()
-        loss.backward(retain_graph=True)
-        self.additional_critic_optimizer.step()
 
     '''
     utils
