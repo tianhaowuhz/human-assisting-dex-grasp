@@ -68,13 +68,13 @@ open3d
 ## Dataset
 
 ### Asset
-you can download filterd grasping dataset from [Human-assisting Dexterous Grasping/Asset](https://drive.google.com/drive/folders/1fUKlUu1ifYQJ5_7NkmC1jpkEysLR9v8A) and put on following directopry.
+you can download filterd mesh and origin grasp pose dataset from [Human-assisting Dexterous Grasping/Asset](https://drive.google.com/drive/folders/1fUKlUu1ifYQJ5_7NkmC1jpkEysLR9v8A) and put on following directopry.
 ```
 ConDexEnv/assets
 ```
 There are three sets in our dataset: train, seencategory and unseencategory. You can choose to only download one of them for simple demonstration.
 ### ExpertDataset
-you can download filterd grasping dataset from [Human-assisting Dexterous Grasping/ExpertDatasets](https://drive.google.com/drive/folders/1fUKlUu1ifYQJ5_7NkmC1jpkEysLR9v8A) and put on current directory.
+you can download filterd grasping dataset, human trajectories, and pointcloud buffer from [Human-assisting Dexterous Grasping/ExpertDatasets](https://drive.google.com/drive/folders/1JjxaMlao4IrGUO-v8l9FsXd_Vp3t-jzr) and put on current directory.
 
 There are three types of data: 
 1. Human trajectories: sampled from [Handover-Sim](https://github.com/NVlabs/handover-sim), which has to be downloaded.
