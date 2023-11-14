@@ -1,9 +1,18 @@
 # Human-assist Dexterous Grasping
 
-## [Note] currently only available for testing
-[[Website](https://sites.google.com/view/graspgf)] [[Arxiv](https://arxiv.org/abs/2309.06038)]
+[![Website](https://img.shields.io/badge/Website-orange.svg )](https://sites.google.com/view/graspgf)
+[![Arxiv](https://img.shields.io/badge/Arxiv-green.svg )](https://arxiv.org/abs/2309.06038)
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Ftianhaowuhz%2Fhuman-assisting-dex-grasp%2F&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
+[![GitHub license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Jiyao06/GenPose/blob/main/LICENSE)
 
+This repo is the official implementation of [GraspGF](https://arxiv.org/abs/2309.06038).
 
+## TODOs (Under Development):
+- [x] README
+- [x] Testing
+- [ ] Training
+
+## Overview
 <img src="Demos/graspgf_mug.gif" align="middle" width="700"/> 
 
 In this paper, we propose a novel task called **human-assisting dexterous grasping** that aims to train a policy for controlling a robotic hand's fingers to assist users in grasping diverse objects with diverse grasping poses.
@@ -12,7 +21,7 @@ In this paper, we propose a novel task called **human-assisting dexterous graspi
 
 We address this challenge by proposing an approach consisting of **two sub-modules**: a hand-object-conditional grasping primitive called Grasping Gradient Field (**GraspGF**), and a history-conditional **residual policy**. 
 
-This repo is the official implementation of [GraspGF](https://arxiv.org/abs/2309.06038). Contents of this repo are as follows:
+Contents of this repo are as follows:
 
 - [Installation](#installation)
   - [Requirements](#requirements)
@@ -98,10 +107,10 @@ ExpertDatasets/grasp_data/ground/*_rc.pth
 ## Training 
 
 ### Training the GraspGF
-[TODO]
+Comming soom!
 
 ### Training the RL with GraspGF
-[TODO]
+Comming soom!
 
 
 
@@ -147,25 +156,30 @@ Pointnet2:
 [ck-kai/SGPA](https://github.com/ck-kai/SGPA)
 
 ## Citation
-[TODO]
-<!-- ```
-@inproceedings{
-wu2022targf,
-title={Tar{GF}: Learning Target Gradient Field for Object Rearrangement},
-author={Mingdong Wu and Fangwei Zhong and Yulong Xia and Hao Dong},
-booktitle={Advances in Neural Information Processing Systems},
-editor={Alice H. Oh and Alekh Agarwal and Danielle Belgrave and Kyunghyun Cho},
-year={2022},
-url={https://openreview.net/forum?id=Euv1nXN98P3}
+If you find our work useful in your research, please consider citing:
+``` bash
+@article{wu2023learning,
+  title={Learning Score-based Grasping Primitive for Human-assisting Dexterous Grasping},
+  author={Tianhao Wu and Mingdong Wu and Jiyao Zhang and Yunchong Gan and Hao Dong},
+  booktitle={Thirty-seventh Conference on Neural Information Processing Systems},
+  year={2023},
+  url={https://openreview.net/forum?id=fwvfxDbUFw}
 }
-``` -->
+```
 
 ## Contact
-If you have any suggestion or questions, please get in touch at [thwu@stu.pku.edu.cn](thwu@stu.pku.edu.cn).
+If you have any suggestion or questions, please feel free to contact us:
 
-## LICENSE
-<!-- GraspGF has an MIT license, as found in the [LICENSE](./LICENSE) file. -->
-[TODO]
+[Tianhao Wu](https://tianhaowuhz.github.io/): [thwu@stu.pku.edu.cn](mailto:thwu@stu.pku.edu.cn)
+
+[Mingdong Wu](https://aaronanima.github.io/): [wmingd@pku.edu.cn](mailto:wmingd@pku.edu.cn)
+
+[Hao Dong](https://zsdonghao.github.io/): [hao.dong@pku.edu.cn](mailto:hao.dong@pku.edu.cn)
+
+## License
+This project is released under the MIT license. See [LICENSE](LICENSE) for additional details.
+
+
 
 
 
