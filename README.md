@@ -1,11 +1,11 @@
-# Human-assist Dexterous Grasping
+# Learning Score-based Grasping Primitive for Human-assisting Dexterous Grasping
 
 [![Website](https://img.shields.io/badge/Website-orange.svg )](https://sites.google.com/view/graspgf)
 [![Arxiv](https://img.shields.io/badge/Arxiv-green.svg )](https://arxiv.org/abs/2309.06038)
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Ftianhaowuhz%2Fhuman-assisting-dex-grasp%2F&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 [![GitHub license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Jiyao06/GenPose/blob/main/LICENSE)
 
-This repo is the official implementation of [GraspGF](https://arxiv.org/abs/2309.06038).
+This repo is the official implementation of NeurIPS 2023 paper, [GraspGF](https://arxiv.org/abs/2309.06038).
 
 ## TODOs (Under Development):
 - [x] README
