@@ -107,10 +107,14 @@ ExpertDatasets/grasp_data/ground/*_rc.pth
 ## Training 
 
 ### Training the GraspGF
-Comming soom!
+```
+Comming soon!
+```
 
 ### Training the RL with GraspGF
-Comming soom!
+```
+Comming soon!
+```
 
 
 
