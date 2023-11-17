@@ -109,17 +109,7 @@ class GFPPO:
         self.grad_process = self.cfg_train["setting"]["grad_process"]
         self.grad_scale = self.cfg_train["setting"]["grad_scale"]
 
-        if self.action_type=='finger':
-            action_space_shape = (5+18,)
-        elif self.action_type=='thumbf':
-            action_space_shape = (9,)
-        elif self.action_type=='joint' and self.sub_action_type=='add+scale':
-            action_space_shape = (19,)
-        elif self.action_type=='joint' and self.sub_action_type=='doubleadd+scale':
-            action_space_shape = (19+18,)
-        elif self.action_type=='joint' and self.sub_action_type=='addscale+add':
-            action_space_shape = (19+18,)
-        elif self.action_type=='joint' and self.sub_action_type=='add+jointscale':
+        if self.action_type=='joint' and self.sub_action_type=='add+jointscale':
             action_space_shape = (18+18,)
         else:
             action_space_shape = self.action_space.shape
@@ -181,7 +171,6 @@ class GFPPO:
                 embed_dim=args.embed_dim,
                 mode=args.score_mode,
                 relative=args.relative,
-                pointnet_network_type='new_3',
                 space=args.space,
                 pointnet_version='pt2',
             )
@@ -224,17 +213,6 @@ class GFPPO:
         if self.vec_env.mode == 'eval':
             self.eval_round = self.args.eval_times
 
-        # if self.vec_env.mode=='train':
-        #     self.metrics = {
-        #     'obj_shapes':[],
-        #     'time_step':[],
-        #     'success_rate':[],
-        #     'gt_dist':[],
-        #     'stability':[],
-        #     'lift_nums':np.zeros(self.vec_env.num_envs),
-        #     }
-        #     self.metrics['obj_shapes'] = self.vec_env.object_types
-        # else:
         if save_state:
             self.eval_metrics = {
             'obj_shapes':[],
@@ -339,10 +317,8 @@ class GFPPO:
                             self.eval_metrics['success_rate'].append(float(infos['success_rate'].cpu().numpy()))
                             # self.eval_metrics['obj_translation'].append(float(infos['obj_translation'].cpu().numpy()))
                             # self.eval_metrics['obj_cosine_similarity'].append(float(infos['obj_cosine_similarity'].cpu().numpy()))
-                            # print(np.mean(self.eval_metrics['obj_translation']), np.mean(self.eval_metrics['obj_cosine_similarity']))
                             self.eval_metrics['gt_dist'].append(float(infos['gt_dist'].cpu().numpy()))
                             self.eval_metrics['lift_nums']+=infos['lift_nums'].cpu().numpy()
-                            # self.eval_metrics['stability'].append(float(infos['stability'].cpu().numpy()))
                             if self.vec_env.mode == 'eval':
                                 with open(f'logs/{self.args.exp_name}/metrics_{self.args.eval_name}_eval_{self.args.seed}.pkl', 'wb') as f: 
                                     pickle.dump(self.eval_metrics, f)
@@ -393,9 +369,7 @@ class GFPPO:
         sr_mu, sr_std = success_rates.mean().cpu().numpy().item(), success_rates.std().cpu().numpy().item()
         print(f'====== t0: {self.t0} || num_envs: {self.vec_env.num_envs} || eval_times: {self.eval_round}')
         print(f'eval_success_rate: {sr_mu:.2f} +- {sr_std:.2f}')
-        # eval_success_rate = success_times/test_times
         eval_rews = np.mean(reward_all)
-        # print(f'eval_success_rate: {eval_success_rate}')
         print(f'eval_rewards: {eval_rews}')
         self.writer.add_scalar('Eval/success_rate', sr_mu, it)
         self.writer.add_scalar('Eval/eval_rews', eval_rews, it)
@@ -683,10 +657,7 @@ class GFPPO:
         cur_hand_dof = current_obs[:,:18].clone() #【-1，1】
         pcl_index = self.stack_frame_numer*7 + 18
         cur_obj_pcl = current_obs[:,pcl_index:self.points_per_object*3+pcl_index].clone().reshape(-1, 3, self.points_per_object)
-        # if B == 1:
-        #     batch_time_step = torch.ones(B, device=self.device).unsqueeze(1) * self.t0
-        # else:
-        #     batch_time_step = torch.ones(B, device=self.device) * self.t0
+
         if reset:
             with torch.no_grad():  
                 in_process_sample, res = cond_ode_sampler(
@@ -760,32 +731,8 @@ class GFPPO:
             return current_obs, grad
     
     def process_actions(self, actions, grad):
-        if self.action_type=='finger':
-            if self.action_clip:
-                actions = torch.clamp(actions,-1.2,1.2)
-            step_actions = torch.cat([grad[:,:3]*actions[:,0:1], grad[:,3:6]*actions[:,1:2], grad[:,6:9]*actions[:,2:3], grad[:,9:13]*actions[:,3:4], grad[:,13:18]*actions[:,4:5]],-1) + actions[:,5:]
-        elif self.action_type=='thumbf':
-            if self.action_clip:
-                actions = torch.clamp(actions,-1.2,1.2)
-            step_actions = torch.cat([grad[:,:3]*actions[:,0:1], grad[:,3:6]*actions[:,1:2], grad[:,6:9]*actions[:,2:3], grad[:,9:13]*actions[:,3:4], grad[:,13:18]*actions[:,4:9]],-1)
-        elif self.action_type=='joint':
-            if self.action_clip:
-                actions = torch.clamp(actions,-1.2,1.2)
-            if self.sub_action_type=='jointadd':
-                step_actions = grad + actions
-            elif self.sub_action_type=='jointscale':
-                step_actions = grad*actions
-            elif self.sub_action_type=='add+scale':
-                self.vec_env.extras['grad_ss_mean'] = torch.mean(abs(actions[:,18:19]),-1)
-                self.vec_env.extras['grad_ss_std'] = torch.std(abs(actions[:,18:19]),-1)
-                self.vec_env.extras['residual_mean'] = torch.mean(abs(actions[:,:18]),-1)
-                self.vec_env.extras['residual_std'] = torch.std(abs(actions[:,:18]),-1)
-                step_actions = grad*actions[:,18:19] + actions[:,:18]
-            elif self.sub_action_type=='doubleadd+scale':
-                step_actions = (grad+actions[:,19:])*actions[:,18:19] + actions[:,:18]
-            elif self.sub_action_type=='addscale+add':
-                step_actions = grad*(actions[:,18:19]+actions[:,19:]) + actions[:,:18]
-            elif self.sub_action_type=='add+jointscale':
+        if self.action_type=='joint':
+            if self.sub_action_type=='add+jointscale':
                 self.vec_env.extras['grad_ss_mean'] = torch.mean(abs(actions[:,:18]),-1)
                 self.vec_env.extras['grad_ss_std'] = torch.std(abs(actions[:,:18]),-1)
                 self.vec_env.extras['residual_mean'] = torch.mean(abs(actions[:,18:]),-1)
@@ -795,10 +742,6 @@ class GFPPO:
                 step_actions = actions*grad
         elif self.action_type=='direct':
             step_actions = actions
-        elif self.action_type=='residual':
-            if self.action_clip:
-                actions = torch.clamp(actions,-1,1)
-            step_actions = actions + grad
         elif 'gf' in self.action_type:
             step_actions = grad
         return step_actions

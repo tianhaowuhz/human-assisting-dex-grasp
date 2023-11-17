@@ -24,23 +24,9 @@ from Algorithms.SDE_update import loss_fn_cond, cond_ode_sampler, init_sde, Expo
 from Networks.SDENets_update import CondScoreModel
 from utils.utils import exists_or_mkdir, save_video, get_dict_key, DexDataset
 
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 points_per_object = 1024
 vis_image = False
 max_bz = 256
-
-def visualize_states(states, logger, suffix, epoch, nrow=4):
-    imgs = []
-    for state in states:
-        env_id = int(state[25+points_per_object*3+7:25+points_per_object*3+8].long().cpu().numpy())
-        envs.set_states(state.unsqueeze(0))
-        img = envs.render(rgb=True,img_size=256)[env_id]
-        img = torch.flip(img, [-1])
-        imgs.append(img) # rendered_img: [256, 256, 3]
-    
-    ts_imgs = torch.stack(imgs).permute(0, 3, 1, 2)
-    grid = make_grid(ts_imgs.float(), padding=2, nrow=nrow, normalize=True)
-    logger.add_image(f'Images/{suffix}', grid, epoch)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -155,7 +141,7 @@ if __name__ == "__main__":
     with open(eval_dataset_ot_path, 'rb') as f:
         eval_data_ot = pickle.load(f)
     
-    # change data oti
+    # change data object type id
     eval_dataset_oti_path = f'./ExpertDatasets/grasp_data/ground/{args.eval_demo_name}_oti.pth'
     with open(eval_dataset_oti_path, 'rb') as f:
         eval_data_oti = pickle.load(f)
@@ -226,30 +212,22 @@ if __name__ == "__main__":
             # 25~3096 obj point cloud, 
             # 3097~3103 obj pose pos(3)+oriq(4)
             # 3104~3105 env_id 
-            # set_trace()
             dex_data = torch.tensor(dex_data, device=device)
             state_size = dex_data.size(1)
-            # ori_data = dex_data.clone()
+
             if args.relative:
-                # dex_data = envs.aug_data(dex_data, relative=True)
-                # hand_dof = dex_data[:,:18].clone().to(device).float()
-                # obj_pcl_2h = dex_data[:,25:3097].clone().to(device).float().reshape(-1, 3, 1024)
-                # dex_data = envs.traj_gen(dex_data, relative=True).reshape(-1,state_size)
                 hand_dof = dex_data[:,:18].clone().to(device).float()
                 hand_pos = dex_data[:,18:21].clone().to(device).float()
                 hand_quat = dex_data[:,21:25].clone().to(device).float()
                 obj_pcl = dex_data[:,25:points_per_object*3+25].clone().to(device).float().reshape(-1, points_per_object, 3)
                 obj_pcl_2h = envs.get_obj2hand(obj_pcl, hand_quat, hand_pos).reshape(-1, 3, points_per_object)
             else:
-                # dex_data = envs.aug_data(dex_data)
                 hand_dof = dex_data[:,:25].clone().to(device).float()
                 obj_pcl_2h = dex_data[:,25:points_per_object*3+25].clone().to(device).float().reshape(-1, 3, points_per_object)
             
             if args.space=='riemann' and ('direct' in args.log_dir):
                 hand_dof = envs.dof_norm(hand_dof,inv=True)
-            # hand_dof[:,envs.tip_actuated_dof_indices_in_states]*=0.6
-            # if torch.isnan(obj_pcl_2h).any() or torch.isnan(hand_dof).any():
-            #     set_trace()
+
             # calc score-matching loss
             loss = 0
             total_loss = 0
@@ -335,57 +313,47 @@ if __name__ == "__main__":
                             hand_dof = envs.dof_norm(hand_dof,inv=True)
 
                         with torch.no_grad():  
-                            # visualize_states(dex_data.clone(), writer, 'GT', i)
+                            iter_num = int(np.ceil(num_envs/max_bz))
+                            in_process_sample_last = torch.zeros_like(eval_dex_data)[:,:18]
 
-                            if not args.gt:
-                                iter_num = int(np.ceil(num_envs/max_bz))
-                                in_process_sample_last = torch.zeros_like(eval_dex_data)[:,:18]
-                                # in_process_sample = torch.zeros()
-                                # set_trace()
-                                for order in range(iter_num):
-                                    in_process_sample, res = cond_ode_sampler(
-                                        score,
-                                        prior_fn,
-                                        sde_fn,
-                                        (hand_dof[order*max_bz:(order+1)*max_bz,:], obj_pcl_2h[order*max_bz:(order+1)*max_bz,:]),
-                                        t0=args.t0,
-                                        device=device,
-                                        num_steps=500,
-                                        batch_size=len(hand_dof[order*max_bz:(order+1)*max_bz,:]),
-                                        hand_pcl=args.hand_pcl, 
-                                        full_state=eval_dex_data[order*max_bz:(order+1)*max_bz,:].clone(), 
-                                        envs=envs, 
-                                        hand_model=hand_model,
-                                        space=args.space,
-                                        relative=args.relative,
-                                    )
-                                    if args.space == 'riemann' and ('direct' in args.log_dir):
-                                        in_process_sample_last[order*max_bz:(order+1)*max_bz,:18] = torch.clip(envs.dof_norm(in_process_sample[-1,:,:18].clone()),-1,1).reshape(-1,18)
-                                    else:
-                                        in_process_sample_last[order*max_bz:(order+1)*max_bz,:18] = torch.clip(in_process_sample[-1,:,:18].clone(),-1,1).reshape(-1,18)
+                            for order in range(iter_num):
+                                in_process_sample, res = cond_ode_sampler(
+                                    score,
+                                    prior_fn,
+                                    sde_fn,
+                                    (hand_dof[order*max_bz:(order+1)*max_bz,:], obj_pcl_2h[order*max_bz:(order+1)*max_bz,:]),
+                                    t0=args.t0,
+                                    device=device,
+                                    num_steps=500,
+                                    batch_size=len(hand_dof[order*max_bz:(order+1)*max_bz,:]),
+                                    hand_pcl=args.hand_pcl, 
+                                    full_state=eval_dex_data[order*max_bz:(order+1)*max_bz,:].clone(), 
+                                    envs=envs, 
+                                    hand_model=hand_model,
+                                    space=args.space,
+                                    relative=args.relative,
+                                )
+                                if args.space == 'riemann' and ('direct' in args.log_dir):
+                                    in_process_sample_last[order*max_bz:(order+1)*max_bz,:18] = torch.clip(envs.dof_norm(in_process_sample[-1,:,:18].clone()),-1,1).reshape(-1,18)
+                                else:
+                                    in_process_sample_last[order*max_bz:(order+1)*max_bz,:18] = torch.clip(in_process_sample[-1,:,:18].clone(),-1,1).reshape(-1,18)
 
                             states = torch.tensor([],device=device)
                             video_state = eval_dex_data.clone()
+                            video_state[:,:18] = in_process_sample_last
 
-                            if not args.gt:
-                                # in_process_sample_last = torch.clip(in_process_sample[-1,:,:].clone(),-1,1)
-                                video_state[:,:18] = in_process_sample_last
                             success = envs.grasp_filter(states=video_state,close_dis=0.1)
                             total_success_numer += torch.sum(success).cpu().numpy()
                             print(f'success rate: {total_success_numer/((eval_order+1)*num_envs)}, total_test_time: {((eval_order+1)*num_envs)}')
                         pbar.update(num_envs)
 
                 writer.add_scalar('eval/success_rate', total_success_numer/((eval_order+1)*num_envs), epoch)
-                # save model (save ema parameters)
                 torch.save(score.cpu().state_dict(), ckpt_path + f'score_{epoch}.pt')
                 torch.save(score.obj_enc.cpu().state_dict(), ckpt_path + f'pointnet2_{epoch}.pt')
-                # with open(ckpt_path + f'score.pt', 'wb') as f:
-                #     pickle.dump(score, f)
                 score.to(device)
 
                 # restore checkpointed parameters, and continue training
                 ema.restore(score.parameters())
-        print(tb_path, cur_step)
         score.train()
 
 

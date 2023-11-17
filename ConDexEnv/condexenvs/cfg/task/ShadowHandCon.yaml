@@ -65,7 +65,7 @@ env:
 
   max_points_per_object: 4096
   points_per_object: 1024
-  rewardType: "ori_similarity0.1+omlift+sr1_ft64bz_lr1_5005"  # "ori_similarity_sr1_continous_os0.1_0.1as_2sigma_ft128bz_lr1_4050_normr" #"ori_similarity/std_similarity+objmoving+distw2o+distf2o+tsifdist+tsifsim+t1fcontact/t2fcontact/simplecontact+target_objmoving"
+  rewardType: "ori_similarity+height+sr"
   rewardNormalize: False
   contactDetectionType: "continous"
   contactTime: 0.9
@@ -80,9 +80,8 @@ env:
   closeDis: 0.1
   robotDone: False
   sampleGoal: False
-  objectType: "block" # can be block, egg or pen
-  observationType: "full_state" # can be "openai", "full_no_vel", "full", "full_state"
-  subObservationType: "joint+fingertipjoint+wrist+objpcl+gf" #"joint+wrist+objpcl+gf+absfingertip/disfingertip/fingertipjoint+objpose+targetdiso2o"
+  observationType: "gf"
+  subObservationType: "joint+fingertipjoint+wrist+objpcl+gf"
   asymmetric_observations: False
   successTolerance: 0.1
   printNumSuccesses: False
@@ -92,10 +91,6 @@ env:
     assetType: "dexgraspnet" # dexgraspnet ddg
     assetSubType: "train" # train seencategory unseencategory
     assetFileName: "mjcf/open_ai_assets/hand/shadow_hand_simple.xml"
-    # assetFileName: "gripper_model/combined.urdf"
-    # assetFileNameBlock: "urdf/objects/cube_multicolor.urdf"
-    # assetFileNameEgg: "mjcf/open_ai_assets/hand/egg.xml"
-    # assetFileNamePen: "mjcf/open_ai_assets/hand/pen.xml"
     assetFileNameObjects: "objects/Grasp_Dataset_v3"
 
   # set to True if you use camera sensors in the environment

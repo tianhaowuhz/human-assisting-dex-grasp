@@ -10,8 +10,8 @@ python ./Runners/TrainSDE_update.py \
 --train_model \
 --demo_nums 15387 \
 --num_envs=3027 \
---demo_name=train_semcore_0.1_dc_100ss_5far_rel_rc \
---eval_demo_name=train_semcore_0.1_dc_100ss_5faronly_rel \
+--demo_name=train_gf \
+--eval_demo_name=train_eval \
 --device_id=0 \
 --mode train \
 --dataset_type train \

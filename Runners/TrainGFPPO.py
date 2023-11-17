@@ -22,7 +22,7 @@ if __name__ == '__main__':
     cfg_train['policy']['pointnet_version'] = 'pt'
 
     if args.exp_name == 'ours':
-        reward_type = "ori_similarity+height+sr_faketendon+1osr+175h_normriemann+26999pt"
+        reward_type = "ori_similarity+height+sr"
         reward_normalize = False
         sub_obs_type = "joint+fingertipjoint+wrist+objpcl+gf"
         cfg_train['setting']['action_type'] = "joint"
@@ -43,7 +43,6 @@ if __name__ == '__main__':
     cfg_train['learn']['nminibatches'] = int(args.num_envs*cfg_train['learn']['nsteps']/64)
     if cfg_train['policy']['pointnet_version'] == 'pt':
         cfg_train['learn']['optim_stepsize'] = 0.0003
-        # cfg_train['policy']['norm_action'] = True
     else:
         cfg_train['learn']['optim_stepsize'] = 0.0003
     cfg_train['learn']['desired_kl'] = 0.016

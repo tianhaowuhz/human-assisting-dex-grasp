@@ -25,8 +25,8 @@ class GaussianFourierProjection(nn.Module):
         return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], dim=-1)
 
 class CondScoreModel(nn.Module):
-    def __init__(self, marginal_prob_func, hidden_dim, embed_dim, obj_dim=6, class_num=10, state_dim=1, size_dim=2,
-                 mode='target', relative=False, pointnet_network_type='new_3', pointnet_version='pt2', n_blocks=0, feature_dim_coff=1, space='euler'):
+    def __init__(self, marginal_prob_func, hidden_dim, embed_dim, state_dim=1,
+                 mode='target', relative=False, pointnet_version='pt2', n_blocks=0, feature_dim_coff=1, space='euler'):
         super(CondScoreModel, self).__init__()
         self.marginal_prob_func = marginal_prob_func
         self.point_feat_dim = 1088

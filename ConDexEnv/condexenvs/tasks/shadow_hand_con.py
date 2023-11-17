@@ -328,7 +328,7 @@ class ShadowHandCon(VecTask):
                 print(invalid_object)
                 self.shapes_all.pop(self.shapes_all.index(invalid_object))
 
-        print(len(self.shapes_all), self.sub_dataset_type)
+        # print(len(self.shapes_all), self.sub_dataset_type)
         # pointcloud setup
         self.max_points_per_object = self.cfg["env"]["max_points_per_object"]
         self.points_per_object = self.cfg["env"]["points_per_object"]
