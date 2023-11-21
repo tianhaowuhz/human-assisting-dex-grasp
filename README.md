@@ -10,7 +10,7 @@ This repo is the official implementation of NeurIPS 2023 paper, [GraspGF](https:
 ## TODOs (Under Development):
 - [x] README
 - [x] Testing
-- [x] Training
+- [ ] Training
 - [ ] Refine and Vis
 
 ## Overview
@@ -109,7 +109,7 @@ ExpertDatasets/grasp_data/ground/*_rc.pth
 ## Training 
 
 ### Training the GraspGF
-For training GraspGF with pointnet2, fill following arguments in shell "gf_train.sh"
+For training GraspGF with pointnet2, fill following command in shell "gf_train.sh"
 ```
 python ./Runners/TrainSDE_update.py \
 --log_dir gf_pt2 \
@@ -135,7 +135,7 @@ sh ./gf_train.sh
 ```
 
 ### Pretrain the pointnet for RL
-fill following arguments in shell "gf_train.sh"
+fill following command in shell "gf_train.sh"
 ```
 python ./Runners/TrainSDE_update.py \
 --log_dir gf_pt \
