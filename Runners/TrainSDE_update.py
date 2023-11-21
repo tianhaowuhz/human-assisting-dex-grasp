@@ -94,7 +94,7 @@ if __name__ == "__main__":
         num_envs=num_envs, 
         sim_device=device,
         rl_device=device,
-        graphics_device_id = -1,
+        graphics_device_id = device_id,
         virtual_screen_capture=False,
         headless=args.gui,
         force_render = False,
