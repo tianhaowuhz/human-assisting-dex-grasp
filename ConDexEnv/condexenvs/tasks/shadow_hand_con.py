@@ -307,7 +307,7 @@ class ShadowHandCon(VecTask):
                 if self.dataset_type == 'dexgraspnet':
                     if self.sub_dataset_type == 'train':
                         if self.method == 'filter':
-                            self.custom_gen_data_name = 'train_semcore_0.1_dc_100ss_5faronly_rel'
+                            self.custom_gen_data_name = 'train_eval'
                         else:
                             self.custom_gen_data_name = 'train'
             else:
@@ -2588,6 +2588,287 @@ class ShadowHandCon(VecTask):
                     self.render()
                 self.refresh_env_states()
 
+    '''
+    for filter grasp pose
+    '''
+    def grasp_filter(self, obj_ids=None, pose_id=None, close_dis=0.1, close_dof_indices=None, states=None, aug_data=False, test_time=2, move_hand=False, filter_threshold=0.01, hand_step_number=20, mode='state', pregrasp_coff=0.8, reset_coll=False):
+        if close_dof_indices is None:
+            close_dof_indices = self.close_dof_indices.clone()
+        if states is None:
+            if obj_ids is None:
+                # reset all environments
+                obj_ids = torch.arange(start=0, end=self.num_envs, device=self.device, dtype=torch.long)
+            else:
+                if 'int' in str(type(obj_ids)):
+                    obj_ids = torch.tensor([obj_ids], device=self.device, dtype=torch.long)
+                else:
+                    obj_ids = to_torch(obj_ids, dtype=torch.long, device=self.device)
+
+            if aug_data:
+                success_time = torch.zeros(self.num_envs,device=self.device)
+                for _ in range(test_time):
+                    self.reset_idx(obj_ids, obj_ids, is_random=False, pose_id=pose_id)
+                    cur_states = self.get_states()
+                    # cur_states = self.get_states(refresh=False)
+                    # target_dof = self.shadow_hand_dof_pos[obj_ids][:,self.actuated_dof_indices].clone()
+                    # cur_states[obj_ids,:18] = unscale(target_dof, self.shadow_hand_dof_lower_limits[self.actuated_dof_indices], self.shadow_hand_dof_upper_limits[self.actuated_dof_indices])
+                    cur_states = self.aug_data(cur_states, aug_dis=0)
+                    
+                    self.reset_obj_vel(env_ids=obj_ids)
+                    if move_hand:
+                        pregrasp_states = cur_states.clone()
+                        pregrasp_states[:,self.tip_actuated_dof_indices_in_states] = unscale(target_dof[:,self.tip_actuated_dof_indices_in_states]-0.2, self.shadow_hand_dof_lower_limits[self.tip_actuated_dof_indices], self.shadow_hand_dof_upper_limits[self.tip_actuated_dof_indices])
+                        self.set_states(pregrasp_states)
+                        self.close(env_ids=obj_ids, close_dis=0.1, close_dof_indices=self.tip_actuated_dof_indices)
+                        # self.move_hand_to_target_dof(obj_ids=obj_ids,target_hand_dof=target_dof)
+                    else:
+                        self.set_states(cur_states)
+                    # TODO aug data not transofrm fingertip
+                    cur_states = self.get_states()
+
+                    if self.force_render:
+                        self.render()
+
+                    self.lift_successes*=0
+                    self.lift_test(obj_ids,close_dis=close_dis, close_dof_indices=close_dof_indices)
+
+                    if self.force_render:
+                        self.render()
+                    # may because this time object not lift, but hand in object, next turn, as simulation goes. object bump up.
+                    success_time[obj_ids] += self.lift_successes[obj_ids]
+                return success_time==test_time, cur_states
+            else:
+                if self.reset_sim_every_time:
+                    self._reset_simulator(pose_id=pose_id, env_ids=obj_ids)
+
+                if self.table_setting:
+                    success_time = torch.zeros(self.num_envs,device=self.device)
+                    valid_states = torch.tensor([],device=self.device)
+
+                    if self.dataset_type=='ddg':
+                        stable_object_pose = self.gen_stable_object_pose(obj_ids)
+                    elif self.dataset_type=='dexgraspnet':
+                        stable_object_pose = torch.zeros(self.num_envs, 7, device=self.device)
+                        obj_scales = []
+
+                    for i in range(test_time):
+                        if self.dataset_type=='ddg':
+                            self.reset_object_pose(env_ids=obj_ids, object_pose=stable_object_pose)
+                        tmp_hand_pos = torch.tensor([],device=self.device)
+                        tmp_hand_rot = torch.tensor([],device=self.device)
+                        tmp_hand_dof = torch.tensor([],device=self.device)
+                        for obj_id in obj_ids:
+                            if self.dataset_type=='ddg':
+                                candidate_grasp_path = random.choice(self.grasp_poses[obj_id])
+                                hand_pose, object_pose = config_from_xml(self.pcl_shadow_hands[obj_id].hand, candidate_grasp_path)
+                                # get isaac object pose
+                                old_object_pos = to_torch(object_pose[:3],device=self.device).reshape(1,-1)
+                                old_object_quat = to_torch([*object_pose[4:7], object_pose[3]],device=self.device).reshape(1,-1)
+                                # get isaac hand pose
+                                self.pcl_shadow_hands[obj_id].reset(hand_pose)
+                                old_hand_pos, old_hand_quat, hand_dof = self.get_isaac_hand_state_from_pcl(env_id=obj_id)
+                                # hand_dofs[obj_id] = hand_dof
+                                # w2o@h2w -> h2o
+                                old_w2o_quat, old_w2o_pos = transform_world2target(old_object_quat, old_object_pos) # w2h
+                                h2o_pos, h2o_quat = multiply_transform(old_w2o_pos, old_w2o_quat, old_hand_pos.reshape(1,-1), old_hand_quat.reshape(1,-1))
+
+                                # o2w_new@h2o -> h2w_new
+                                new_object_pos = stable_object_pose[obj_id][:3].clone().reshape(1,-1)
+                                new_object_quat = stable_object_pose[obj_id][3:7].clone().reshape(1,-1)
+                                h2w_pos_new, h2w_quat_new = multiply_transform(new_object_pos, new_object_quat, h2o_pos, h2o_quat)
+                            elif self.dataset_type=='dexgraspnet':
+                                stable_object_pose[obj_id] = to_torch(self.obj_poses[obj_id][pose_id[obj_id]].copy(), device=self.device)
+                                tmp_grasp_pose = to_torch(self.grasp_poses[obj_id][pose_id[obj_id]].copy(), device=self.device)
+                                h2w_pos_new, h2w_quat_new = multiply_transform(stable_object_pose[obj_id][:3].unsqueeze(0), stable_object_pose[obj_id][3:7].unsqueeze(0), tmp_grasp_pose[:3].unsqueeze(0), tmp_grasp_pose[3:7].unsqueeze(0))
+                                h2w_pos_new = h2w_pos_new
+                                h2w_quat_new = h2w_quat_new
+                                hand_dof = tmp_grasp_pose[7:25]
+                                obj_scales.append(self.obj_scales[obj_id][pose_id[obj_id]].copy())
+                            tmp_hand_pos = torch.cat([tmp_hand_pos, h2w_pos_new])
+                            tmp_hand_rot = torch.cat([tmp_hand_rot, h2w_quat_new])
+                            tmp_hand_dof = torch.cat([tmp_hand_dof, hand_dof.unsqueeze(0)])
+
+                        if self.dataset_type == 'dexgraspnet':
+                            if allow_obj_scale:
+                                self.set_object_scale(env_ids=obj_ids, obj_scales=obj_scales)
+                            self.reset_object_pose(env_ids=obj_ids, object_pose=stable_object_pose)
+                            self.step_simulation(100)
+                        elif self.dataset_type == 'ddg':
+                            self.move_hand_to_target_pose(obj_ids=obj_ids,target_hand_pose=torch.cat([tmp_hand_pos,tmp_hand_rot],-1),threshold=hand_step_number, direct=False)
+                        cur_states = self.get_states()
+                        hand_dof_f = tmp_hand_dof.clone()
+                        if mode=='state':
+                            cur_states[obj_ids,:18] = unscale(hand_dof_f,self.shadow_hand_dof_lower_limits[self.actuated_dof_indices], self.shadow_hand_dof_upper_limits[self.actuated_dof_indices])
+                            if self.dataset_type == 'dexgraspnet':
+                                cur_states[obj_ids,18:21] = tmp_hand_pos
+                                cur_states[obj_ids,21:25] = tmp_hand_rot
+                            self.set_states(cur_states)
+                            self.step_simulation(1)
+                        elif mode=='partial':
+                            hand_dof_f[obj_ids,:12]*=0
+                            cur_states[obj_ids,:18] = unscale(hand_dof_f,self.shadow_hand_dof_lower_limits[self.actuated_dof_indices], self.shadow_hand_dof_upper_limits[self.actuated_dof_indices])
+                            self.set_states(cur_states)
+                            self.step_simulation(1)
+                            self.move_hand_to_target_dof(obj_ids=obj_ids, target_hand_dof=tmp_hand_dof)
+                        elif mode=='full':
+                            self.move_hand_to_target_dof(obj_ids=obj_ids, target_hand_dof=tmp_hand_dof)
+                        elif mode=='pregrasp':
+                            hand_dof_f[obj_ids,self.distal_dof_indices]*=pregrasp_coff
+                            # hand_dof_f[obj_ids,self.middle_dof_indices]=0
+                            cur_states[obj_ids,:18] = unscale(hand_dof_f,self.shadow_hand_dof_lower_limits[self.actuated_dof_indices], self.shadow_hand_dof_upper_limits[self.actuated_dof_indices])
+                            if self.dataset_type == 'dexgraspnet':
+                                cur_states[obj_ids,18:21] = tmp_hand_pos
+                                cur_states[obj_ids,21:25] = tmp_hand_rot
+                            self.set_states(cur_states)
+                            self.step_simulation(1)
+                            self.move_hand_to_target_dof(obj_ids=obj_ids, target_hand_dof=tmp_hand_dof)
+                        
+                        if self.force_render:
+                            self.render()
+
+                        if self.dataset_type == 'ddg':
+                            self.reset_obj_vel(obj_ids)
+                            self.step_simulation(20)
+
+                        gf_states = self.get_states()
+
+                        # palm direction 
+                        v_palm_origin_vec = to_torch([0, -1, 0.05, 0],dtype=torch.float, device=self.device).unsqueeze(0).repeat(len(obj_ids),1)
+                        v_palm_current_vec = transform_points(tmp_hand_rot,v_palm_origin_vec)
+
+                        # fingertip wrist direction
+                        finger_tip_center = torch.mean(self.fingertip_pos,1)
+                        wrist_pos = gf_states[:,18:21].clone()
+                        vector = finger_tip_center - wrist_pos
+
+                        # hand pose > min obj pcl  & hand pose > 0 & object not flying 
+                        pcl_z = self.transform_obj_pcl_2_world(gen_pcl_with_ground=self.gen_pcl_with_ground)[:,:,2]
+                        min_pcl_z = torch.min(pcl_z,1)[0]
+                        min_handbody_z = torch.min(self.shadow_hand_rigid_body_poss[:,3:,2],1)[0]
+
+                        num_bodies_valid = torch.sum(self.shadow_hand_rigid_body_poss[:,:,2] > 0,-1)
+                        # lift_test_obj_ids = (((min_handbody_z - min_pcl_z) > filter_threshold)&(num_bodies_valid>29)&(min_pcl_z<0.005)&((-0.085 < vector[:,2]) & (vector[:,2] < 0))&(v_palm_current_vec[:,2]<-0.2)).nonzero(as_tuple=False).squeeze(-1)
+                        lift_test_obj_ids = ((vector[:,2] < 0)).nonzero(as_tuple=False).squeeze(-1)
+                        lift_test_obj_ids = to_torch(np.intersect1d(lift_test_obj_ids.cpu().numpy(), obj_ids.cpu().numpy()), dtype=torch.long)
+
+                        self.reset_obj_vel(obj_ids)
+
+                        self.lift_successes *= 0 
+                        self.lift_test(lift_test_obj_ids,close_dis=close_dis, close_dof_indices=close_dof_indices)
+                        if self.force_render:
+                            self.render()
+                        
+                        valid_grasp_obj_ids = self.lift_successes.nonzero(as_tuple=False).squeeze(-1)
+                        final_grasp_obj_ids = to_torch(np.intersect1d(lift_test_obj_ids.cpu().numpy(), valid_grasp_obj_ids.cpu().numpy()), dtype=torch.long)
+                        # may because this time object not lift, but hand in object, next turn, as simulation goes. object bump up.
+                        
+                        gf_states = gf_states[final_grasp_obj_ids]
+                        if len(gf_states) > 0:
+                            self.set_states(gf_states,step_simulation_step=30)
+                            # self.set_states(gf_states,6)
+                            # self.step_simulation(5)
+                            # self.move_hand_to_target_dof(obj_ids=final_grasp_obj_ids, target_hand_dof=scale(gf_states[:,:18],self.shadow_hand_dof_lower_limits[self.actuated_dof_indices], self.shadow_hand_dof_upper_limits[self.actuated_dof_indices]))
+                            self.lift_successes *= 0 
+                            self.lift_test(final_grasp_obj_ids,close_dis=close_dis, close_dof_indices=close_dof_indices)
+                            double_check_success_ids = self.lift_successes[final_grasp_obj_ids].nonzero(as_tuple=False).squeeze(-1)
+                            gf_states = gf_states[double_check_success_ids]
+                            success_time[final_grasp_obj_ids] += self.lift_successes[final_grasp_obj_ids]
+                            valid_states = torch.cat([valid_states, gf_states])
+                    return success_time, valid_states
+                else:
+                    # return self.lift_successes, cur_states
+                    success_time = torch.zeros(self.num_envs,device=self.device)
+                    for _ in range(test_time):
+                        self.reset_idx(obj_ids, obj_ids, is_random=False, pose_id=pose_id)
+                        cur_states = states.clone()
+                        cur_states = self.aug_data(cur_states, aug_dis=0)
+                        self.set_states(cur_states)
+                        # TODO aug data not transofrm fingertip
+                        cur_states = self.get_states()
+
+                        if self.force_render:
+                            self.render()
+
+                        self.lift_successes*=0
+                        self.lift_test(obj_ids,close_dis=close_dis, close_dof_indices=close_dof_indices)
+
+                        if self.force_render:
+                            self.render()
+                        # may because this time object not lift, but hand in object, next turn, as simulation goes. object bump up.
+                        success_time[obj_ids] += self.lift_successes[obj_ids]
+                return success_time>0, cur_states
+        else:
+            if move_hand:
+                hand_dof = states[:,:18].to(self.device).float()
+                hand_dof = scale(hand_dof,self.shadow_hand_dof_lower_limits[self.actuated_dof_indices], self.shadow_hand_dof_upper_limits[self.actuated_dof_indices])
+
+                if states.size(1) > 3000:
+                    point_cloud_idx = 25 + self.points_per_object * 3
+                    env_ids = states[:,point_cloud_idx+7:point_cloud_idx+8].to(self.device).long().squeeze(-1)
+                else:
+                    env_ids = states[:,32:33].to(self.device).long().squeeze(-1)
+                
+                self.move_hand_to_target_dof(obj_ids=env_ids, target_hand_dof=hand_dof)
+            else:
+                if mode=='pregrasp':
+                    point_cloud_idx = 25 + self.points_per_object * 3
+                    obj_ids = states[:,point_cloud_idx+7:point_cloud_idx+8].to(self.device).long().squeeze(-1)
+                    hand_dof_f = self.dof_norm(states[:,:18],inv=True)
+                    tmp_hand_dof = hand_dof_f.clone()
+                    hand_dof_f[obj_ids,:13]*=pregrasp_coff
+                    states[obj_ids,:13] = unscale(hand_dof_f,self.shadow_hand_dof_lower_limits[self.actuated_dof_indices], self.shadow_hand_dof_upper_limits[self.actuated_dof_indices])[:,:13]
+                    self.set_states(states)
+                    self.step_simulation(1)
+                    self.move_hand_to_target_dof(obj_ids=obj_ids, target_hand_dof=tmp_hand_dof, open_loop=False)
+                else:
+                    if self.diff_obj_scale:
+                        point_cloud_idx = 25 + self.points_per_object * 3
+                        obj_ids = states[:,point_cloud_idx+7:point_cloud_idx+8].to(self.device).long().squeeze(-1)
+                        obj_scales = states[:,-1].to(self.device).squeeze(-1)
+                        # set_trace()
+                        if reset_coll:
+                            self.disable_collision = False
+                        self._reset_simulator(env_ids=obj_ids, obj_scales=obj_scales)
+
+                    self.set_states(states,step_simulation_step=30)
+                    self.step_simulation(1)
+                # hand_dof = states[:,:18].to(self.device).float().clone()
+                # hand_dof = scale(hand_dof,self.shadow_hand_dof_lower_limits[self.actuated_dof_indices], self.shadow_hand_dof_upper_limits[self.actuated_dof_indices])
+                # tmp_hand_dof = hand_dof.clone()
+
+                # point_cloud_idx = 25 + self.points_per_object * 3
+                # obj_ids = states[:,point_cloud_idx+7:point_cloud_idx+8].to(self.device).long().squeeze(-1)
+                # hand_dof[:,:18]*=pregrasp_coff
+                # states[:,:18] = unscale(hand_dof,self.shadow_hand_dof_lower_limits[self.actuated_dof_indices], self.shadow_hand_dof_upper_limits[self.actuated_dof_indices])
+                # self.set_states(states)
+                # self.step_simulation(1)
+                # self.move_hand_to_target_dof(obj_ids=obj_ids, target_hand_dof=tmp_hand_dof)
+
+            point_cloud_idx = 25 + self.points_per_object * 3
+            obj_ids = states[:,point_cloud_idx+7:point_cloud_idx+8].to(self.device).long().squeeze(-1)
+            # self.gen_stable_object_pose(obj_ids=obj_ids, reset_object_pose=False)
+
+            if self.force_render:
+                self.render()
+
+            if self.method=='wristgen':
+                stable_states = self.get_states()
+
+            self.lift_successes*=0
+            self.lift_test(obj_ids,close_dis=close_dis, close_dof_indices=close_dof_indices)
+
+            if self.force_render:
+                self.render()
+
+            if reset_coll:
+                self.disable_collision = True
+                lift_success_env_ids = self.lift_successes.nonzero(as_tuple=False).squeeze(-1)
+                self.extras['success_num'] = to_torch(len(lift_success_env_ids), dtype=torch.float, device=self.device).unsqueeze(-1)
+
+            if self.method=='wristgen':
+                return self.lift_successes[obj_ids], stable_states
+            else:
+                return self.lift_successes[obj_ids]
     '''
     generate trajectory for constrained env
     '''

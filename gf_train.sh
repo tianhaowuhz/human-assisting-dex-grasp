@@ -2,7 +2,7 @@
 #####################################################-------- GF Train-------#########################################################################################
 #####################################################################################################################################################################
 python ./Runners/TrainSDE_update.py \
---log_dir gf \
+--log_dir gf_pt \
 --sde_mode vp \
 --batch_size 3077 \
 --lr 2e-4 \
@@ -10,10 +10,11 @@ python ./Runners/TrainSDE_update.py \
 --train_model \
 --demo_nums 15387 \
 --num_envs=3027 \
---demo_name=train_gf \
+--demo_name=train_gf_rc \
 --eval_demo_name=train_eval \
 --device_id=0 \
 --mode train \
 --dataset_type train \
 --relative \
 --space riemann \
+--pt_version pt \

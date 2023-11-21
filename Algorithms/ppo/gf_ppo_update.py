@@ -135,9 +135,9 @@ class GFPPO:
         self.finetune_pointnet_bz = 128
         if self.model_cfg['pretrain_pointnet']:
             if pointnet_version == 'pt2':
-                pointnet_model_dict = torch.load(os.path.join(args.score_model_path,'pointnet2.pt'), map_location=self.device)
+                pointnet_model_dict = torch.load(os.path.join(args.score_model_path,'pt2.pt'), map_location=self.device)
             elif pointnet_version == 'pt':
-                pointnet_model_dict = torch.load(os.path.join(args.score_model_path,'pointnet.pt'), map_location=self.device)
+                pointnet_model_dict = torch.load(os.path.join(args.score_model_path,'pt.pt'), map_location=self.device)
             if self.model_cfg['shared_pointnet']:
                 self.actor_critic.pointnet_enc.load_state_dict(pointnet_model_dict)
                 if not self.model_cfg['finetune_pointnet']:

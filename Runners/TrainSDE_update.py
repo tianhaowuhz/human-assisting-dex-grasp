@@ -80,6 +80,7 @@ if __name__ == "__main__":
     parser.add_argument('--device_id', type=int, default=0, help='device_id')
     # tensorboard
     parser.add_argument("--log_dir", type=str, default='gf_overfit')
+    parser.add_argument("--pt_version", type=str, default='pt2')
 
     args = parser.parse_args()
 
@@ -93,7 +94,7 @@ if __name__ == "__main__":
         num_envs=num_envs, 
         sim_device=device,
         rl_device=device,
-        graphics_device_id = args.device_id,
+        graphics_device_id = -1,
         virtual_screen_capture=False,
         headless=args.gui,
         force_render = False,
@@ -191,8 +192,8 @@ if __name__ == "__main__":
         embed_dim=args.embed_dim,
         mode=args.score_mode,
         relative=args.relative,
-        pointnet_network_type=args.pointnet_network_type,
         space=args.space,
+        pointnet_version=args.pt_version
     )
     score.to(device)
     optimizer = optim.Adam(score.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
@@ -236,13 +237,13 @@ if __name__ == "__main__":
                 if args.batch_size > max_bz:
                     iter_num = int(np.ceil(args.batch_size/max_bz))
                     for iter in range(iter_num):
-                        loss = loss_fn_cond(score, (hand_dof[iter*max_bz:(iter+1)*max_bz,:], obj_pcl_2h[iter*max_bz:(iter+1)*max_bz,:]), marginal_prob_fn, sde_fn, is_likelihood_weighting=False, device=device, hand_pcl=args.hand_pcl, full_state=dex_data[iter*max_bz:(iter+1)*max_bz,:].clone(), envs=envs, hand_model=hand_model, space=args.space, relative=args.relative)
+                        loss = loss_fn_cond(score, (hand_dof[iter*max_bz:(iter+1)*max_bz,:], obj_pcl_2h[iter*max_bz:(iter+1)*max_bz,:]), marginal_prob_fn, sde_fn, is_likelihood_weighting=False, device=device, full_state=dex_data[iter*max_bz:(iter+1)*max_bz,:].clone(), envs=envs, space=args.space, relative=args.relative)
                         loss /= iter_num
                         loss /= args.repeat_num
                         total_loss += loss.item()
                         loss.backward()
                 else:
-                    loss = loss_fn_cond(score, (hand_dof, obj_pcl_2h), marginal_prob_fn, sde_fn, is_likelihood_weighting=False, device=device, hand_pcl=args.hand_pcl, full_state=dex_data, envs=envs, hand_model=hand_model, space=args.space, relative=args.relative)
+                    loss = loss_fn_cond(score, (hand_dof, obj_pcl_2h), marginal_prob_fn, sde_fn, is_likelihood_weighting=False, device=device, full_state=dex_data, envs=envs, space=args.space, relative=args.relative)
                     loss /= args.repeat_num
                     total_loss += loss.item()
                     loss.backward()
@@ -273,12 +274,12 @@ if __name__ == "__main__":
                         if args.batch_size > max_bz:
                             iter_num = int(np.ceil(args.batch_size/max_bz))
                             for iter in range(iter_num):
-                                loss = loss_fn_cond(score, (hand_dof[iter*max_bz:(iter+1)*max_bz,:], obj_pcl_2h[iter*max_bz:(iter+1)*max_bz,:]), marginal_prob_fn, sde_fn, is_likelihood_weighting=False, device=device, hand_pcl=args.hand_pcl, full_state=dex_data[iter*max_bz:(iter+1)*max_bz,:], envs=envs, hand_model=hand_model, space=args.space, relative=args.relative)
+                                loss = loss_fn_cond(score, (hand_dof[iter*max_bz:(iter+1)*max_bz,:], obj_pcl_2h[iter*max_bz:(iter+1)*max_bz,:]), marginal_prob_fn, sde_fn, is_likelihood_weighting=False, device=device, full_state=dex_data[iter*max_bz:(iter+1)*max_bz,:], envs=envs, space=args.space, relative=args.relative)
                                 loss /= iter_num
                                 loss /= args.repeat_num
                                 total_loss += loss.item()
                         else:
-                            loss = loss_fn_cond(score, (hand_dof, obj_pcl_2h), marginal_prob_fn, sde_fn, is_likelihood_weighting=False, device=device, hand_pcl=args.hand_pcl, full_state=dex_data, envs=envs, hand_model=hand_model, space=args.space, relative=args.relative)
+                            loss = loss_fn_cond(score, (hand_dof, obj_pcl_2h), marginal_prob_fn, sde_fn, is_likelihood_weighting=False, device=device, full_state=dex_data, envs=envs, space=args.space, relative=args.relative)
                             loss /= args.repeat_num
                             total_loss += loss.item()
                     writer.add_scalar('train_loss/ema', loss, cur_step)
@@ -326,10 +327,8 @@ if __name__ == "__main__":
                                     device=device,
                                     num_steps=500,
                                     batch_size=len(hand_dof[order*max_bz:(order+1)*max_bz,:]),
-                                    hand_pcl=args.hand_pcl, 
                                     full_state=eval_dex_data[order*max_bz:(order+1)*max_bz,:].clone(), 
                                     envs=envs, 
-                                    hand_model=hand_model,
                                     space=args.space,
                                     relative=args.relative,
                                 )
@@ -349,7 +348,7 @@ if __name__ == "__main__":
 
                 writer.add_scalar('eval/success_rate', total_success_numer/((eval_order+1)*num_envs), epoch)
                 torch.save(score.cpu().state_dict(), ckpt_path + f'score_{epoch}.pt')
-                torch.save(score.obj_enc.cpu().state_dict(), ckpt_path + f'pointnet2_{epoch}.pt')
+                torch.save(score.obj_enc.cpu().state_dict(), ckpt_path + f'{args.pt_version}_{epoch}.pt')
                 score.to(device)
 
                 # restore checkpointed parameters, and continue training

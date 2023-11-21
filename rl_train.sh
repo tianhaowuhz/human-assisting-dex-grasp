@@ -2,11 +2,11 @@
 #####################################################-------- RL Train-------#########################################################################################
 #####################################################################################################################################################################
 python ./Runners/TrainGFPPO.py \
---seed=456 \
+--seed=0 \
 --headless \
 --num_envs=100 \
 --dataset_type='train' \
---score_model_path='/home/jiyao/tianhaowu/projects/ConDex/Models/train_new3_rel_01-10range_rt1_5farrel_riemann_1ks_noaug_vp' \
+--score_model_path='/home/jiyao/tianhaowu/projects/human-assisting-dex-grasp/Ckpt/gf' \
 --t0=0.005 \
 --exp_name="ours" \
 --run_device_id=0 \
