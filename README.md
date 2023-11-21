@@ -10,7 +10,8 @@ This repo is the official implementation of NeurIPS 2023 paper, [GraspGF](https:
 ## TODOs (Under Development):
 - [x] README
 - [x] Testing
-- [ ] Training
+- [x] Training
+- [ ] Refine and Vis
 
 ## Overview
 <img src="Demos/graspgf_mug.gif" align="middle" width="700"/> 
@@ -30,6 +31,7 @@ Contents of this repo are as follows:
   - [ExpertDataset](#expert-dataset)
 - [Training](#training)
   - [GraspGF](#training-the-graspgf)
+  - [Pointnet Pretrain](#pretrain-the-pointnet-for-rl)
   - [RL+GraspGF](#training-the-rl-with-graspgf)
 - [Evaluation](#evaluation)
 - [Acknowledgement](#acknowledgement)
@@ -107,13 +109,60 @@ ExpertDatasets/grasp_data/ground/*_rc.pth
 ## Training 
 
 ### Training the GraspGF
+For training GraspGF with pointnet2, fill following arguments in shell "gf_train.sh"
 ```
-Comming soon!
+python ./Runners/TrainSDE_update.py \
+--log_dir gf_pt2 \
+--sde_mode vp \
+--batch_size 3027 \
+--lr 2e-4 \
+--t0 0.5 \
+--train_model \
+--demo_nums 15387 \
+--num_envs=3027 \
+--demo_name=train_gf_rc \
+--eval_demo_name=train_eval \
+--device_id=0 \
+--mode train \
+--dataset_type train \
+--relative \
+--space riemann \
+--pt_version pt2 \
+```
+Then run
+```
+sh ./gf_train.sh
+```
+
+### Pretrain the pointnet for RL
+fill following arguments in shell "gf_train.sh"
+```
+python ./Runners/TrainSDE_update.py \
+--log_dir gf_pt \
+--sde_mode vp \
+--batch_size 3077 \
+--lr 2e-4 \
+--t0 0.5 \
+--train_model \
+--demo_nums 15387 \
+--num_envs=3027 \
+--demo_name=train_gf_rc \
+--eval_demo_name=train_eval \
+--device_id=0 \
+--mode train \
+--dataset_type train \
+--relative \
+--space riemann \
+--pt_version pt \
+```
+Then run
+```
+sh ./gf_train.sh
 ```
 
 ### Training the RL with GraspGF
 ```
-Comming soon!
+sh ./rl_train.sh
 ```
 
 
