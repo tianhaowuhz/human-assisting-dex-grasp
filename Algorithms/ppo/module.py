@@ -328,12 +328,12 @@ class ActorCritic(nn.Module):
         # pointcloud encoder
         if self.shared_pointnet:
             if self.pointnet_type == 'pt':
-                obj_feat, _, _ = self.pointnet_enc(obj_batch.reshape(batch_size,3,-1))
+                obj_feat, _, _ = self.pointnet_enc(obj_batch.reshape(batch_size,-1,3).permute(0,2,1))
             elif self.pointnet_type == 'pt2':
                 obj_feat, _ = self.pointnet_enc(obj_batch.reshape(batch_size,-1,3))
         else:
             if self.pointnet_type == 'pt':
-                obj_feat, _, _ = self.actor_pointnet_enc(obj_batch.reshape(batch_size,3,-1))
+                obj_feat, _, _ = self.actor_pointnet_enc(obj_batch.reshape(batch_size,-1,3).permute(0,2,1))
             elif self.pointnet_type == 'pt2':
                 obj_feat, _ = self.actor_pointnet_enc(obj_batch.reshape(batch_size,-1,3))
         obj_feat = self.actor_obj_global_enc(obj_feat.reshape(batch_size,-1)) # B x 512
@@ -375,12 +375,12 @@ class ActorCritic(nn.Module):
         # point cloud encoder
         if self.shared_pointnet:
             if self.pointnet_type == 'pt':
-                obj_feat, _, _ = self.pointnet_enc(obj_batch.reshape(batch_size,3,-1))
+                obj_feat, _, _ = self.pointnet_enc(obj_batch.reshape(batch_size,-1,3).permute(0,2,1))
             elif self.pointnet_type == 'pt2':
                 obj_feat, _ = self.pointnet_enc(obj_batch.reshape(batch_size,-1,3))
         else:
             if self.pointnet_type == 'pt':
-                obj_feat, _, _ = self.critic_pointnet_enc(obj_batch.reshape(batch_size,3,-1))
+                obj_feat, _, _ = self.critic_pointnet_enc(obj_batch.reshape(batch_size,-1,3).permute(0,2,1))
             elif self.pointnet_type == 'pt2':
                 obj_feat, _ = self.critic_pointnet_enc(obj_batch.reshape(batch_size,-1,3))
         obj_feat = self.critic_obj_global_enc(obj_feat.reshape(batch_size,-1)) # B x 512
@@ -423,12 +423,12 @@ class ActorCritic(nn.Module):
         # point cloud encoder
         if self.shared_pointnet:
             if self.pointnet_type == 'pt':
-                obj_feat, _, _ = self.pointnet_enc(obj_batch.reshape(batch_size,3,-1))
+                obj_feat, _, _ = self.pointnet_enc(obj_batch.reshape(batch_size,-1,3).permute(0,2,1))
             elif self.pointnet_type == 'pt2':
                 obj_feat, _ = self.pointnet_enc(obj_batch.reshape(batch_size,-1,3))
         else:
             if self.pointnet_type == 'pt':
-                obj_feat, _, _ = self.critic_pointnet_enc(obj_batch.reshape(batch_size,3,-1))
+                obj_feat, _, _ = self.critic_pointnet_enc(obj_batch.reshape(batch_size,-1,3).permute(0,2,1))
             elif self.pointnet_type == 'pt2':
                 obj_feat, _ = self.critic_pointnet_enc(obj_batch.reshape(batch_size,-1,3))
         obj_feat = self.critic_obj_global_enc(obj_feat.reshape(batch_size,-1)) # B x 512

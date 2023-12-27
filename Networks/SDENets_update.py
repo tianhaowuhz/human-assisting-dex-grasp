@@ -136,7 +136,7 @@ class CondScoreModel(nn.Module):
         # obj_feat,_ = self.obj_enc(obj_batch) # B x 1024
         # obj_feat = self.obj_global_enc(obj_feat)
         if self.pointnet_version == 'pt':
-            obj_feat,_,_ = self.obj_enc(obj_batch) # B x 1024
+            obj_feat,_,_ = self.obj_enc(obj_batch.reshape(batch_size,-1,3).permute(0,2,1)) # B x 1024
         elif self.pointnet_version == 'pt2':
             ## cuda pointnet2
             obj_feat,_ = self.obj_enc(obj_batch.reshape(batch_size,-1,3)) # B x 1024
